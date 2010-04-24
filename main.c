@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -11,7 +12,10 @@
 #define PORT 6665
 #define HOST "senseii.tonbnc.fr"
 
-
+#define ERROR fprintf (stderr, \
+        "%d:%d Error (%d : %s\n", \
+        __FILE__, __LINE__, \
+        errno, strerror(errno))
 int initSocketConnect (int sock);
 
 
@@ -29,7 +33,7 @@ int main (void)
  */
     if (NULL == (host_address = gethostbyname (HOST)))
     {
-        fprintf (stderr, "Impossible d'indentifier la machine\n");
+        ERROR;
         return (-1);
     }
 
@@ -37,7 +41,7 @@ int main (void)
  */
     if (-1 == (sock = socket (PF_INET, SOCK_STREAM, 0)))
     {
-        fprintf (stderr, "Impossible de créer une socket\n");
+        ERROR;
         return EXIT_FAILURE;
     }
 
@@ -49,11 +53,15 @@ int main (void)
 
     if (-1 == (connect (sock, (struct sockaddr *) &sockname, sizeof (struct sockaddr_in))))
     {
-        fprintf (stderr, "Impossible de connecter la socket au serveur\n");
+        ERROR;
         return (-1);
     }
     
-    initSocketConnect (*psock);
+    if (initSocketConnect (*psock) == 1)
+    {
+        close (sock);
+        return EXIT_FAILURE;
+    }
 
     while(1)
     {
@@ -75,17 +83,25 @@ int initSocketConnect (int sock)
 
     char *nick = "NICK Hazardous\r\n";
     char *user = "USER Haz \"localhost\" \"irc_server\" :Nic0 s Bot\r\n";
+    char *join = "JOIN #test\r\n"; 
 
-    if (send(sock, nick, strlen(nick), 0) == 0);
+    if ((send(sock, nick, strlen(nick), 0)) == -1)
     {
-        fprintf (stderr, "Impossible d'envoyer les identifiants pour la connexion\n");
-        return EXIT_FAILURE;
+        ERROR;
+        return 1;
     }
     
-    if (send(sock, user, strlen(user), 0) == 0);
+    if ((send(sock, user, strlen(user), 0)) == -1)
     {
-        fprintf (stderr, "Impossible d'envoyer les identifiants pour la connexion\n");
-        return EXIT_FAILURE;
+        ERROR;
+        return 1;
     }
+    
+    if ((send(sock, join, strlen(join), 0)) == -1)
+    {
+        ERROR;
+        return 1;
+    }
+
     return 0;
 }
