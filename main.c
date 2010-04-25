@@ -30,7 +30,6 @@ int pong (int *sock, char *buffer);
 
 int main (void)
 {   
-    /*char buffer [2048] = {0};*/
     struct sockaddr_in sockname;
     struct hostent *host_address;
     int sock = 0;
@@ -47,7 +46,12 @@ int main (void)
     while(1)
     {
         char buffer [2048] = {0};
-        recv(sock, buffer, sizeof(buffer) - 1, 0);
+        if ((recv(sock, buffer, sizeof(buffer) - 1, 0)) == -1)
+        {
+            ERROR;
+            close (sock);
+            return EXIT_FAILURE;
+        }
         printf("%s", buffer);
 
         if ((socketAction (&sock, buffer)) == 1)
@@ -140,7 +144,7 @@ int socketAction (int *sock, char *buffer)
         }
     }
 
-    if (strstr(buffer, "ERROR :") != NULL && buffer[0] == 'E')
+    if (strstr(buffer, "ERROR :Closing Link:") != NULL && buffer[0] == 'E')
     {
         close (*sock);
         return 1;
