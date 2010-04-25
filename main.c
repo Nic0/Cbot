@@ -22,28 +22,19 @@
         errno, strerror(errno))
 
 int initSocket (int *sock, struct sockaddr_in *sockname, struct hostent *host_address);
-int initSocketConnect (int sock);
+int initSocketConnect (int *sock);
 
 int main (void)
 {   
     char buffer [2048] = {0};
-    struct sockaddr_in *psockname;
     struct sockaddr_in sockname;
-    psockname = &sockname;
     struct hostent *host_address;
     int sock = 0;
-    int *psock;
-    psock = &sock;
-
-
-   /* 
-    if ((initSocket (*psock, *psockname, host_address)) == 1)
-        return EXIT_FAILURE;*/
 
     if ((initSocket (&sock, &sockname, host_address)) == 1)
         return EXIT_FAILURE;
 
-    if (initSocketConnect (*psock) == 1)
+    if (initSocketConnect (&sock) == 1)
     {
         close (sock);
         return EXIT_FAILURE;
@@ -97,26 +88,26 @@ int initSocket (int *sock, struct sockaddr_in *sockname, struct hostent *host_ad
 }
 
 
-int initSocketConnect (int sock)
+int initSocketConnect (int *sock)
 {
 
     char *nick = "NICK Hazardous\r\n";
     char *user = "USER Haz \"localhost\" \"irc_server\" :Nic0 s Bot\r\n";
     char *join = "JOIN #test\r\n"; 
 
-    if ((send(sock, nick, strlen(nick), 0)) == -1)
+    if ((send(*sock, nick, strlen(nick), 0)) == -1)
     {
         ERROR;
         return 1;
     }
     
-    if ((send(sock, user, strlen(user), 0)) == -1)
+    if ((send(*sock, user, strlen(user), 0)) == -1)
     {
         ERROR;
         return 1;
     }
     
-    if ((send(sock, join, strlen(join), 0)) == -1)
+    if ((send(*sock, join, strlen(join), 0)) == -1)
     {
         ERROR;
         return 1;
