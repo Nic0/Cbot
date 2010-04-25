@@ -1,3 +1,7 @@
+/*****************************
+*       IRCBOT
+*           Nic0 (24/04/10)
+******************************/
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,50 +17,32 @@
 #define HOST "senseii.tonbnc.fr"
 
 #define ERROR fprintf (stderr, \
-        "%d:%d Error (%d : %s\n", \
+        "%s:%d Error (%d) : %s\n", \
         __FILE__, __LINE__, \
         errno, strerror(errno))
+
+int initSocket (int *sock, struct sockaddr_in *sockname, struct hostent *host_address);
 int initSocketConnect (int sock);
 
-
 int main (void)
-{
-    
+{   
     char buffer [2048] = {0};
+    struct sockaddr_in *psockname;
     struct sockaddr_in sockname;
+    psockname = &sockname;
     struct hostent *host_address;
     int sock = 0;
     int *psock;
     psock = &sock;
 
-/*  Obtention de l'adresse de la machine distante à partir de l'host.
- */
-    if (NULL == (host_address = gethostbyname (HOST)))
-    {
-        ERROR;
-        return (-1);
-    }
 
-/*  Création d'une socket.
- */
-    if (-1 == (sock = socket (PF_INET, SOCK_STREAM, 0)))
-    {
-        ERROR;
+   /* 
+    if ((initSocket (*psock, *psockname, host_address)) == 1)
+        return EXIT_FAILURE;*/
+
+    if ((initSocket (&sock, &sockname, host_address)) == 1)
         return EXIT_FAILURE;
-    }
 
-/*  Connexion de la socket au server distant
- */
-    sockname.sin_family = host_address ->h_addrtype;
-    sockname.sin_port = htons (PORT);
-    memcpy ((char *) &(sockname.sin_addr.s_addr), host_address->h_addr, host_address->h_length);
-
-    if (-1 == (connect (sock, (struct sockaddr *) &sockname, sizeof (struct sockaddr_in))))
-    {
-        ERROR;
-        return (-1);
-    }
-    
     if (initSocketConnect (*psock) == 1)
     {
         close (sock);
@@ -77,6 +63,39 @@ int main (void)
     
     return EXIT_SUCCESS;
 }
+
+int initSocket (int *sock, struct sockaddr_in *sockname, struct hostent *host_address)
+{
+/*  Obtention de l'adresse de la machine distante à partir de l'host.
+ */
+    if ((host_address = gethostbyname (HOST)) == NULL)
+    {
+        ERROR;
+        return 1;
+    }
+
+/*  Création d'une socket.
+ */
+    if ((*sock = socket (PF_INET, SOCK_STREAM, 0)) == -1)
+    {
+        ERROR;
+        return 1;
+    }
+
+/*  Connexion de la socket au server distant
+ */
+    sockname->sin_family = host_address ->h_addrtype;
+    sockname->sin_port = htons (PORT);
+    memcpy ((char *) &((*sockname).sin_addr.s_addr), host_address->h_addr, host_address->h_length);
+
+    if ((connect (*sock, (struct sockaddr *) sockname, sizeof (struct sockaddr_in))) == -1)
+    {
+        ERROR;
+        return 1;
+    }
+    return 0;
+}
+
 
 int initSocketConnect (int sock)
 {
