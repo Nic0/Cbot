@@ -1,12 +1,12 @@
-/***************************************************
+/***********************************************************
 *
 *       CBot v0.2       (26/04/10)
 *
-*   fait par Nic0 <nicolas.caen at gmail.com>
+*   by Nic0 <nicolas.caen at gmail.com>
 *   Si vous redistribuer se code, merci de ne pas effacer
-*   ces données, et de rajouter les votres.
+*   ces données, et de rajouter les votres. (GPL)
 *
-****************************************************/
+************************************************************/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,8 +46,7 @@ int pong (int *sock, char *buffer);
 int getConfiguration (struct Configuration *config);
 int extractConfig (char *element);
 char *concatString (char *str1, char *str2);
-
-
+void freeStruct (struct Configuration *config);
 
 int main (void)
 {   
@@ -67,6 +66,8 @@ int main (void)
         return EXIT_FAILURE;
     }
 
+    freeStruct (&config);
+
     while(1) {
         char buffer [2048] = {0};
         if ((recv(sock, buffer, sizeof(buffer) - 1, 0)) == -1) {
@@ -83,6 +84,8 @@ int main (void)
     return EXIT_SUCCESS;
 }
 
+/*  Fonction permettant de créer la socket et de la connecter au serveur IRC.
+ */
 int initSocket (int *sock, struct sockaddr_in *sockname, 
                 struct hostent  *host_address, struct Configuration *config)
 {
@@ -113,7 +116,9 @@ int initSocket (int *sock, struct sockaddr_in *sockname,
     return 0;
 }
 
-
+/*  Fonction permettant d'envoyer les paramètres de bases pour rejoindre un salon, avec
+ *  le choix du pseudo et identifiant
+ */
 int initSocketConnect (int *sock, struct Configuration *config)
 {
     if ((send(*sock, config->nick, strlen(config->nick), 0)) != -1)
@@ -124,6 +129,8 @@ int initSocketConnect (int *sock, struct Configuration *config)
     return 1;
 }
 
+/*  Fonction envoyant la réponse au ping
+ */
 int pong (int *sock, char *buffer)
 {
     buffer[1] = 'O';
@@ -134,6 +141,12 @@ int pong (int *sock, char *buffer)
     return 0;
 }
 
+/*  Fonction traitant le buffer pour savoir quel action on doit lui associer.
+ *  Ici, seul la réponse au Ping est traité et le cas de fermeture de la socket
+ *  par le serveur distant.
+ *  Pour rajouter des fonctionnalité au bot, 
+ *  c'est ici qu'il est le plus simple de le faire.
+ */
 int socketAction (int *sock, char *buffer)
 {
     if (strncmp(buffer, "PING :", 6) == 0) {
@@ -149,7 +162,13 @@ int socketAction (int *sock, char *buffer)
     }
 	return 0;
 }
-
+/*  Fonction permettant de récupérer les données lu dans le fichier de configuration
+ *  Chaque éléments reconnu est stocké dans la structure Configuration, 
+ *  Il lui est rajouté dans cette fonction le nécessaire pour être envoyer directement
+ *  dans la socket (une fois sortie de cette fonction, tout est prêt à l'emploi.
+ *  Si un # est rencontré en 1er caractère, on considère que c'est un commentaire
+ *  et est alors exclu.
+ */
 int getConfiguration (struct Configuration *config)
 {
     FILE *fichier;
@@ -256,7 +275,10 @@ int getConfiguration (struct Configuration *config)
     }
     return 0;
 }
-
+/*  Utilitaire: lorsque l'élément en question est lu dans le fichier de configuration
+ *  il apparait sous la forme "element", cette fonction enlève donc les "" pour ne laisser
+ *  que l'élément.
+ */
 int extractConfig (char *element)
 {
     int i = 0;
@@ -272,7 +294,8 @@ int extractConfig (char *element)
     element[i] = '\0';
     return 0;
 }
-
+/*  Utilitaire permettant de concaténer deux chaine de façon dynamique
+ */
 char *concatString (char *str1, char *str2)
 {
     char *result;
@@ -285,4 +308,15 @@ char *concatString (char *str1, char *str2)
  
     memcpy (result + len1, str2, len2 + 1);
     return result;
+}
+/*  Une fois les information envoyer, on libère la structure.
+ */
+void freeStruct (struct Configuration *config)
+{
+    free(config->host);
+    free(config->nick);
+    free(config->ident);
+    free(config->realname);
+    free(config->user);
+    free(config->salon);
 }
