@@ -1,7 +1,12 @@
-/***************************************
-*       IRCBOT
-*           Nic0 (24/04/10)
-****************************************/
+/***************************************************
+*
+*       CBot v0.2       (26/04/10)
+*
+*   fait par Nic0 <nicolas.caen at gmail.com>
+*   Si vous redistribuer se code, merci de ne pas effacer
+*   ces données, et de rajouter les votres.
+*
+****************************************************/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,6 +20,7 @@
 #include <netdb.h>
 
 #define MAXBUFF 512
+#define NBR_ELEMENT 6
 
 #define ERROR fprintf (stderr, \
         "%s:%d Error (%d) : %s\n", \
@@ -28,6 +34,7 @@ struct Configuration
     char *nick;
     char *ident;
     char *realname;
+    char *user;
     char *salon;
 };
 
@@ -109,13 +116,9 @@ int initSocket (int *sock, struct sockaddr_in *sockname,
 
 int initSocketConnect (int *sock, struct Configuration *config)
 {
-
-    char *user = "USER Haz \"localhost\" \"irc_server\" :Nic0 s Bot\r\n";
-    char *join = "JOIN #test\r\n"; 
-
     if ((send(*sock, config->nick, strlen(config->nick), 0)) != -1)
-        if ((send(*sock, user, strlen(user), 0)) != -1)
-            if ((send(*sock, join, strlen(join), 0)) != -1)
+        if ((send(*sock, config->user, strlen(config->user), 0)) != -1)
+            if ((send(*sock, config->salon, strlen(config->salon), 0)) != -1)
                 return 0;
     ERROR;
     return 1;
@@ -133,14 +136,14 @@ int pong (int *sock, char *buffer)
 
 int socketAction (int *sock, char *buffer)
 {
-    if (strstr(buffer, "PING :") != NULL && buffer[0] == 'P') {
+    if (strncmp(buffer, "PING :", 6) == 0) {
         if ((pong(sock, buffer)) ==1) {
             close(*sock);
             return 1;
         }
     }
 
-    if (strstr(buffer, "ERROR :Closing Link:") != NULL && buffer[0] == 'E') {
+    if (strncmp(buffer, "ERROR :Closing Link:", 20) == 0) {
         close (*sock);
         return 1;
     }
@@ -151,6 +154,7 @@ int getConfiguration (struct Configuration *config)
 {
     FILE *fichier;
     char filebuff[MAXBUFF] = {0};
+    int nbrElement = 0;
 
     fichier = fopen ("bot.conf", "r");
     if (fichier != NULL) {
@@ -159,47 +163,95 @@ int getConfiguration (struct Configuration *config)
             if (filebuff[0] == '#')
                 continue;
 
-            if ((strstr (filebuff, "host")) != NULL) {    
-                if ((config->host = (strdup(strchr (filebuff, '"')))) != NULL) {
-                    if (extractConfig(config->host) == 0)
+            if ((strncmp (filebuff, "host", 4)) == 0) {    
+                if ((config->host = (strdup(strchr (filebuff, '"')))) != NULL)
+                    if (extractConfig(config->host) == 0) {
+                        nbrElement++;
                         continue;
-                }
-                else {
-                    ERROR;
-                    return 1;
-                }
-            }
-
-            if ((strstr (filebuff, "port")) != NULL) {
-                config->port = 0;
-                char *tmp = NULL;
-                tmp = strdup (strchr (filebuff, '"'));
-
-                if (extractConfig(tmp) == 0)
-                    if ((config->port = atoi(tmp)) != 0)
-                        continue;
+                    }
                 ERROR;
                 return 1;
             }
 
-            if ((strstr (filebuff, "nick")) != NULL) {
+            if ((strncmp (filebuff, "port", 4)) == 0) {
+                config->port = 0;
+                char *tmp = NULL;
+                if ((tmp = strdup (strchr (filebuff, '"'))) != NULL)
+                    if (extractConfig(tmp) == 0)
+                        if ((config->port = atoi(tmp)) != 0) {
+                            nbrElement++;
+                            continue;
+                        }
+                ERROR;
+                return 1;
+            }
+
+            if ((strncmp (filebuff, "nick", 4)) == 0) {
                 char *tmp = NULL;
                 config->nick = strdup ("NICK ");
                 if ((tmp = strdup (strchr (filebuff, '"'))) != NULL)
                     if (extractConfig (tmp) == 0)
                         if ((concatString (config->nick, tmp)) != NULL)
-                            if ((concatString (config->nick, "\r\n")) != NULL)
+                            if ((concatString (config->nick, "\r\n")) != NULL) {
+                                nbrElement++;
                                 continue;
+                            }
                 ERROR;
                 return 1;
             }
-                
-                
 
+            if ((strncmp (filebuff, "ident", 5)) == 0) {
+                if ((config->ident = (strdup(strchr (filebuff, '"')))) != NULL)
+                    if (extractConfig(config->ident) == 0) {
+                        nbrElement++;
+                        continue;
+                    }
+                ERROR;
+                return 1;
+            }
+            
+            if ((strncmp (filebuff, "realname", 8)) == 0) {
+                if ((config->realname = (strdup(strchr (filebuff, '"')))) != NULL)
+                    if (extractConfig(config->realname) == 0) {
+                        nbrElement++;
+                        continue;
+                    }
+                ERROR;
+                return 1;
+            }
+
+            if ((strncmp (filebuff, "salon", 5)) == 0) {
+                char *tmp = NULL;
+                config->salon = strdup ("JOIN ");
+                if ((tmp = strdup (strchr (filebuff, '"'))) != NULL)
+                    if (extractConfig (tmp) == 0)
+                        if ((concatString (config->salon, tmp)) != NULL)
+                            if ((concatString (config->salon, "\r\n")) != NULL) {
+                                nbrElement++;
+                                continue;
+                            }
+                ERROR;
+                return 1;
+            }
         }
+        fclose (fichier);
     }
     else {
         ERROR;
+        return 1;
+    }
+    if (nbrElement == NBR_ELEMENT) {
+        if ((config->user = strdup("USER ")) != NULL)
+            if ((concatString (config->user, config->ident)) != NULL)
+                if ((concatString (config->user, " \"localhost\" \"irc_server\" :")) != NULL)
+                    if ((concatString (config->user, config->realname)) != NULL)
+                        if ((concatString (config->user, "\r\n")) != NULL)
+                            return 0;
+        ERROR;
+        return 1;
+    }
+    else {
+        fprintf (stderr, "The configuration file doesn't seem to contain enought or to much data\n");
         return 1;
     }
     return 0;
