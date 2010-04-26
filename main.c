@@ -199,6 +199,7 @@ int getConfiguration (struct Configuration *config)
                     if (extractConfig(tmp) == 0)
                         if ((config->port = atoi(tmp)) != 0) {
                             nbrElement++;
+                            free(tmp);
                             continue;
                         }
                 ERROR;
@@ -213,6 +214,7 @@ int getConfiguration (struct Configuration *config)
                         if ((concatString (config->nick, tmp)) != NULL)
                             if ((concatString (config->nick, "\r\n")) != NULL) {
                                 nbrElement++;
+                                free(tmp);
                                 continue;
                             }
                 ERROR;
@@ -247,6 +249,7 @@ int getConfiguration (struct Configuration *config)
                         if ((concatString (config->salon, tmp)) != NULL)
                             if ((concatString (config->salon, "\r\n")) != NULL) {
                                 nbrElement++;
+                                free(tmp);
                                 continue;
                             }
                 ERROR;
@@ -309,7 +312,7 @@ char *concatString (char *str1, char *str2)
     memcpy (result + len1, str2, len2 + 1);
     return result;
 }
-/*  Une fois les information envoyer, on libère la structure.
+/*  Une fois les informations envoyé, on libère la structure.
  */
 void freeStruct (struct Configuration *config)
 {
