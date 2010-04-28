@@ -1,6 +1,6 @@
 /***********************************************************
 *
-*       CBot v0.2       (26/04/10)
+*       CBot v0.2.1       (28/04/10)
 *
 *   by Nic0 <nicolas.caen at gmail.com>
 *   Si vous redistribuez ce code, merci de ne pas effacer
@@ -37,40 +37,60 @@ int main (void)
     struct sockaddr_in sockname;
     struct hostent *host_address = NULL;
     config_t config;
-    int sock = 0;
+    data_t data; 
+    initData(&data);
 
-    if ((getConfiguration (&config)) == 1)
-        return EXIT_FAILURE;
-    
-    if ((initSocket (&sock, &sockname, host_address, &config)) == 1)
-        return EXIT_FAILURE;
-
-    if (initSocketConnect (&sock, &config) == 1) {
-        close (sock);
+    if ((getConfiguration (&config)) == 0) {
+        if ((initSocket (&data.sock, &sockname, host_address, &config)) == 0)
+            if (initSocketConnect (&data.sock, &config) == 0)
+                freeStruct (&config);
+    } else {
+        close (data.sock);
         return EXIT_FAILURE;
     }
 
-    freeStruct (&config);
+    pthread_t pidrecv;
     
-    while(1) {
-        
-        buffer_t buffer;
-        buffer.buff = malloc(sizeof buffer);
-        buffer.next = NULL;
-        char bufftmp[2048] = {0};
-        
-        if ((recv(sock, bufftmp, sizeof(bufftmp) - 1, 0)) != -1) {
-            buffer.buff = strdup (bufftmp);
-            printf("%s", buffer.buff);
-
-            if ((socketAction (&sock, buffer.buff)) == 1)
-                ERROR;
-        } else {
-            ERROR;
-            close(sock);
-            return EXIT_FAILURE;
-        }
+    if (pthread_create (&pidrecv, NULL, recvSocket, &data) != 0) {
+        ERROR;
+        close (data.sock);
+        return EXIT_FAILURE;
     }
+    
+    pthread_join (pidrecv, NULL);
     
     return EXIT_SUCCESS;
 }
+
+void initData (data_t *data)
+{
+    data->first = NULL;
+    data->last = NULL;
+    data->count = 0;
+    data->sock = 0;
+    pthread_mutex_init (&data->mutex, NULL);
+}
+
+void *recvSocket (void *arg)
+{
+    data_t *data = arg;
+
+    while(1) {
+        buffer_t buffer;
+        buffer.buff = malloc (sizeof buffer);
+        buffer.next = NULL;
+        char bufftmp[2048] = {0};
+
+        if ((recv (data->sock, bufftmp, sizeof (bufftmp) -1, 0)) != -1) {
+            buffer.buff = strdup (bufftmp);
+            printf("%s", buffer.buff);
+
+            if ((socketAction (&data->sock, buffer.buff)) == 1)
+                ERROR;
+        } else {
+            ERROR;
+            close (data->sock);
+        }
+    }
+}
+

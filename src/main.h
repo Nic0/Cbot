@@ -9,12 +9,16 @@ typedef struct Buffer
     struct Buffer *next;
 } buffer_t;
 
-typedef struct File
+typedef struct Data
 {
-    buffer_t first;
-    buffer_t last;
+    buffer_t *first;
+    buffer_t *last;
     int count;
+    int sock;
     pthread_mutex_t mutex;
-} file_t;
+} data_t;
+
+void initData (data_t *data);
+void *recvSocket (void *arg);
 
 #endif
