@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "main.h"
+#include "utils.h"
 
 #define MAXBUFF 512
 #define NBR_ELEMENT 6
@@ -149,4 +150,16 @@ int extractConfig (char *element)
     }
     element[i] = '\0';
     return 0;
+}
+
+/*  Une fois les informations envoyé, on libère la structure.
+ */
+void freeStruct (config_t *config)
+{
+    free(config->host);
+    free(config->nick);
+    free(config->ident);
+    free(config->realname);
+    free(config->user);
+    free(config->salon);
 }
