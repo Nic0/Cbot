@@ -18,7 +18,4 @@ typedef struct Data
     pthread_mutex_t mutex;
 } data_t;
 
-void initData (data_t *data);
-void *recvSocket (void *arg);
-
 #endif

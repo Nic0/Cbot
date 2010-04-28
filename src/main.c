@@ -1,6 +1,6 @@
 /***********************************************************
 *
-*       CBot v0.2.1       (28/04/10)
+*       CBot v0.2.2       (28/04/10)
 *
 *   by Nic0 <nicolas.caen at gmail.com>
 *   Si vous redistribuez ce code, merci de ne pas effacer
@@ -23,6 +23,7 @@
 #include "main.h"
 #include "config.h"
 #include "socket.h"
+#include "utils.h"
 
 #define MAXBUFF 512
 #define NBR_ELEMENT 6
@@ -61,36 +62,3 @@ int main (void)
     
     return EXIT_SUCCESS;
 }
-
-void initData (data_t *data)
-{
-    data->first = NULL;
-    data->last = NULL;
-    data->count = 0;
-    data->sock = 0;
-    pthread_mutex_init (&data->mutex, NULL);
-}
-
-void *recvSocket (void *arg)
-{
-    data_t *data = arg;
-
-    while(1) {
-        buffer_t buffer;
-        buffer.buff = malloc (sizeof buffer);
-        buffer.next = NULL;
-        char bufftmp[2048] = {0};
-
-        if ((recv (data->sock, bufftmp, sizeof (bufftmp) -1, 0)) != -1) {
-            buffer.buff = strdup (bufftmp);
-            printf("%s", buffer.buff);
-
-            if ((socketAction (&data->sock, buffer.buff)) == 1)
-                ERROR;
-        } else {
-            ERROR;
-            close (data->sock);
-        }
-    }
-}
-
